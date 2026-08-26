@@ -1,7 +1,7 @@
 # HAKAI Wallpaper Engine
 
 Live desktop wallpapers — video, animated GIF, and image backgrounds with a built-in clock overlay. Built with Electron.
-
+Hakai-LivelyDesktopWalls/assets/icon-256.png
 ---
 
 ## Features
