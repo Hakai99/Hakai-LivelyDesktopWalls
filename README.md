@@ -1,119 +1,174 @@
-HAKAI Wallpaper Engine
-> Live desktop wallpapers — video, animated GIF, and image backgrounds with a built-in clock overlay. Built with Electron.
-![HAKAI](assets/icon-256.png)
+# HAKAI Wallpaper Engine
+
+Live desktop wallpapers — video, animated GIF, and image backgrounds with a built-in clock overlay. Built with Electron.
+
 ---
-Features
-Feature	Description
-Video Wallpapers	MP4, WebM, MOV, AVI, MKV
-Animated GIFs	Full GIF support
-Image Wallpapers	PNG, JPG, WebP
-Power Toggle	Pause / resume wallpaper instantly
-Clock Overlay	Time, day & date on your desktop
-Clock Position	5 positions — centre, corners
-Clock Size	Small / Medium / Large / XL
-Mute Control	Toggle audio on/off
-Dim Slider	Darken wallpaper for readability
-Volume Slider	Control wallpaper audio
-Library	Import and manage your wallpapers
-System Tray	Runs in background, always accessible
-Start with Windows	Auto-launch at login
+
+## Features
+
+| Feature | Description |
+|---|---|
+| Video Wallpapers | MP4, WebM, MOV, AVI, MKV |
+| Animated GIFs | Full GIF support |
+| Image Wallpapers | PNG, JPG, WebP |
+| Power Toggle | Pause and resume wallpaper instantly |
+| Clock Overlay | Time, day and date displayed on your desktop |
+| Clock Position | 5 positions — centre, corners |
+| Clock Size | Small, Medium, Large, XL |
+| Mute Control | Toggle audio on and off |
+| Dim Slider | Darken wallpaper for readability |
+| Volume Slider | Control wallpaper audio level |
+| Library | Import and manage your wallpapers |
+| System Tray | Runs in background, always accessible |
+| Start with Windows | Auto-launch silently at login |
+
 ---
-Quick Start
-Requirements
-Windows 10 or 11
-Node.js LTS — download from nodejs.org
-Build & Run
-```bash
-# 1. Install dependencies
+
+## Requirements
+
+- Windows 10 or 11
+- Node.js LTS — https://nodejs.org
+
+---
+
+## Build and Run
+
+Open Command Prompt inside your project folder and run these commands in order.
+
+**Install dependencies**
+```
 npm install
+```
 
-# 2. Install packager
+**Install packager**
+```
 npm install --save-dev @electron/packager
+```
 
-# 3. Build the app
+**Build the app**
+```
 npx @electron/packager . "HAKAI Wallpaper Engine" --platform=win32 --arch=x64 --icon=assets/icon.ico --out=dist --overwrite --app-version=1.0.0 --verbose
+```
 
-# 4. Open the output folder
+**Open the output folder**
+```
 explorer "dist\HAKAI Wallpaper Engine-win32-x64"
 ```
+
 Double-click `HAKAI Wallpaper Engine.exe` to launch.
-> 💡 **Tip:** Open CMD directly in your project folder by clicking the Explorer address bar, typing `cmd`, and pressing Enter.
+
+Tip: Open CMD directly in your project folder by clicking the Explorer address bar, typing `cmd`, and pressing Enter.
+
 ---
-Creating a Desktop Shortcut
-Open `dist\HAKAI Wallpaper Engine-win32-x64\`
-Right-click `HAKAI Wallpaper Engine.exe`
-Click Show more options
-Click Send to → Desktop (create shortcut)
+
+## Creating a Desktop Shortcut
+
+1. Open `dist\HAKAI Wallpaper Engine-win32-x64\`
+2. Right-click `HAKAI Wallpaper Engine.exe`
+3. Click **Show more options**
+4. Click **Send to** then **Desktop (create shortcut)**
+
 ---
-Settings
-Clock Overlay
-Toggle the clock ON/OFF from the right panel
-Choose from 5 positions — Top Left, Centre, Top Right, Bottom Left, Bottom Right
-Choose from 4 sizes — Small, Medium, Large, XL
-Display
-Setting	Description
-Volume	Wallpaper audio level
-Muted	Toggle audio completely
-Dim	Overlay darkness (0–80%)
-System
-Setting	Description
-Start with Windows	Auto-launch at login silently
-Minimize to tray	Closing hides the window, wallpaper keeps running
+
+## Settings
+
+### Clock Overlay
+
+Toggle the clock on and off from the right panel. Choose from 5 positions and 4 sizes.
+
+| Option | Values |
+|---|---|
+| Position | Top Left, Centre, Top Right, Bottom Left, Bottom Right |
+| Size | Small, Medium, Large, XL |
+
+### Display
+
+| Setting | Description |
+|---|---|
+| Volume | Wallpaper audio level |
+| Muted | Toggle audio completely |
+| Dim | Overlay darkness from 0 to 80 percent |
+
+### System
+
+| Setting | Description |
+|---|---|
+| Start with Windows | Auto-launch at login |
+| Minimize to tray | Closing hides the window, wallpaper keeps running |
+
 ---
-Sharing with Others
-Once you have built the app, the other person needs nothing — no Node.js, no commands.
-Just zip and send this one folder:
+
+## Sharing with Others
+
+Once you have built the app, the other person needs nothing — no Node.js, no commands, no setup.
+
+Zip and send this one folder:
 ```
 dist\HAKAI Wallpaper Engine-win32-x64\
 ```
-They unzip it and double-click the `.exe`. That's it.
+
+They unzip it and double-click the `.exe`. That is it.
+
 ---
-Windows SmartScreen Warning
-The first time you run the app, Windows may show:
-> **"Windows protected your PC"**
-This is normal for apps without a paid code-signing certificate. Click:
-More info → Run anyway
-It only appears once and is completely safe.
+
+## Windows SmartScreen Warning
+
+The first time you run the app, Windows may show a warning saying "Windows protected your PC". This happens because the app does not have a paid code-signing certificate. Click **More info** then **Run anyway**. It only appears once.
+
 ---
-Project Structure
+
+## Project Structure
+
 ```
 hakai-LivelyDeskWalls/
 ├── src/
-│   ├── main.js          # Electron main process
-│   └── preload.js       # IPC bridge
+│   ├── main.js            Electron main process
+│   └── preload.js         IPC bridge
 ├── assets/
-│   ├── icon.ico         # App icon (Windows)
-│   └── icon-*.png       # Icon sizes
-├── index.html           # Library UI
-├── wallpaper.html       # Desktop wallpaper renderer
+│   ├── icon.ico           App icon for Windows
+│   └── icon-*.png         Icon in multiple sizes
+├── index.html             Library UI
+├── wallpaper.html         Desktop wallpaper renderer
 ├── package.json
 └── HAKAI-INSTALL-GUIDE.txt
 ```
+
 ---
-Common Errors
-`'node' is not recognized`
-→ Restart your computer after installing Node.js
-Build finishes but `dist\` is empty
-→ Use `@electron/packager` (with the `@`) — not `electron-packager`
-App closes immediately on launch
-→ Right-click `.exe` → Properties → Compatibility → check Run as administrator
-Wallpaper not showing behind desktop icons
-→ This is a Windows limitation without native C++ hooks. The wallpaper plays in a bottom-level window — desktop icons remain on top normally.
+
+## Common Errors
+
+**'node' is not recognized**
+Restart your computer after installing Node.js.
+
+**Build finishes but dist folder is empty**
+Make sure you used `@electron/packager` with the `@` — not `electron-packager`.
+
+**App closes immediately on launch**
+Right-click the `.exe` then Properties then Compatibility then check Run as administrator.
+
 ---
-Development
-```bash
-# Run without building
+
+## Development
+
+Run without building:
+```
 npm start
 ```
+
 ---
-Tech Stack
-Electron — Desktop app framework
-@electron/packager — App bundler
-Vanilla JS / HTML / CSS — No frontend framework needed
+
+## Tech Stack
+
+- Electron — Desktop app framework
+- @electron/packager — App bundler
+- Vanilla JavaScript, HTML, CSS
+
 ---
-License
-MIT — do whatever you want with it.
+
+## License
+
+MIT
+
 ---
-<div align="center">
-  <strong>HAKAI Wallpaper Engine</strong> — Made for the vibe. 
-</div>
+
+HAKAI Wallpaper Engine — Made for the vibe.
