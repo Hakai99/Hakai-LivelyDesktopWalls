@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100vw; height:100vh; overflow:hidden; background:#000; }
+
+  #wp-video, #wp-image, #wp-gif {
+    position:fixed; inset:0;
+    width:100%; height:100%;
+    object-fit:cover; display:none;
+  }
+  #wp-scrim {
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0);
+    pointer-events:none; z-index:5;
+  }
+
+  /* ── Clock overlay ───────────────────────────────────────────── */
+  #clock-overlay {
+    position: fixed;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    /* default position — top-left, moveable via settings */
+    top: 48px;
+    left: 60px;
+    transition: opacity 0.4s ease;
+  }
+  #clock-overlay.hidden { opacity: 0; }
+
+  #clock-overlay.pos-center {
+    top: 50%; left: 50%;
+    transform: translate(-50%, -60%);
+    align-items: center;
+  }
+  #clock-overlay.pos-top-left    { top:48px;  left:60px;  transform:none; align-items:flex-start; }
+  #clock-overlay.pos-top-right   { top:48px;  right:60px; left:auto; transform:none; align-items:flex-end; }
+  #clock-overlay.pos-bottom-left { bottom:60px; top:auto; left:60px; transform:none; align-items:flex-start; }
+  #clock-overlay.pos-bottom-right{ bottom:60px; top:auto; right:60px; left:auto; transform:none; align-items:flex-end; }
+
+  .ck-time {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-weight: 200;
+    font-size: 72px;
+    line-height: 1;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.92);
+    text-shadow:
+      0 2px 40px rgba(0,0,0,0.6),
+      0 0 80px rgba(0,0,0,0.3);
+    font-variant-numeric: tabular-nums;
+  }
+  .ck-day {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  }
+  .ck-date {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-size: 15px;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.7);
+    text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  }
+</style>
+</head>
+<body>
+
+  <video id="wp-video" autoplay loop playsinline></video>
+  <img   id="wp-image" alt="wallpaper" />
+  <img   id="wp-gif"   alt="animated wallpaper" />
+  <div   id="wp-scrim"></div>
+
+  <!-- Clock / date overlay -->
+  <div id="clock-overlay" class="hidden pos-top-left">
+    <div class="ck-time" id="ck-time">00:00</div>
+    <div class="ck-day"  id="ck-day">Monday</div>
+    <div class="ck-date" id="ck-date">January 1</div>
+  </div>
+
+<script>
+  const video  = document.getElementById('wp-video');
+  const image  = document.getElementById('wp-image');
+  const gif    = document.getElementById('wp-gif');
+  const scrim  = document.getElementById('wp-scrim');
+  const overlay = document.getElementById('clock-overlay');
+
+  // ── Clock tick ─────────────────────────────────────────────────────
+  function tick() {
+    const now  = new Date();
+    const h    = now.getHours();
+    const m    = String(now.getMinutes()).padStart(2,'0');
+    const hh   = String(h % 12 === 0 ? 12 : h % 12).padStart(2,'0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+
+    document.getElementById('ck-time').textContent = `${hh}:${m} ${ampm}`;
+    document.getElementById('ck-day').textContent  = now.toLocaleDateString(undefined,{ weekday:'long' });
+    document.getElementById('ck-date').textContent = now.toLocaleDateString(undefined,{ month:'long', day:'numeric', year:'numeric' });
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // ── Apply display settings ──────────────────────────────────────────
+  function applySettings(s) {
+    video.muted  = s.muted !== false;
+    video.volume = (s.volume ?? 50) / 100;
+    scrim.style.background = `rgba(0,0,0,${(s.dim ?? 0) / 100})`;
+
+    // Clock visibility
+    const showClock = s.showClock === true;
+    overlay.classList.toggle('hidden', !showClock);
+
+    // Clock position
+    const pos = s.clockPosition || 'top-left';
+    overlay.className = overlay.className
+      .replace(/pos-\S+/g, '')
+      .trim();
+    overlay.classList.add('pos-' + pos);
+    if (showClock) overlay.classList.remove('hidden');
+
+    // Clock size
+    const sizes = { small:48, medium:72, large:96, xlarge:128 };
+    document.querySelector('.ck-time').style.fontSize = (sizes[s.clockSize] || 72) + 'px';
+  }
+
+  // ── Wallpaper loading ───────────────────────────────────────────────
+  function hideAll() {
+    video.style.display = 'none';
+    image.style.display = 'none';
+    gif.style.display   = 'none';
+    video.pause();
+    video.src = '';
+    image.src = '';
+    gif.src   = '';
+  }
+
+  window.HAKAI.on('load-wallpaper', async ({ entry, settings: s }) => {
+    hideAll();
+    applySettings(s);
+    if (entry.type === 'video') {
+      const src = await window.HAKAI.fileReadB64(entry.file);
+      if (!src) return;
+      video.src = src;
+      video.style.display = 'block';
+      video.play().catch(() => {});
+    } else if (entry.type === 'gif') {
+      const src = await window.HAKAI.fileReadB64(entry.file);
+      if (!src) return;
+      gif.src = src;
+      gif.style.display = 'block';
+    } else {
+      const src = await window.HAKAI.fileReadB64(entry.file);
+      if (!src) return;
+      image.src = src;
+      image.style.display = 'block';
+    }
+  });
+
+  window.HAKAI.on('clear-wallpaper', () => hideAll());
+  window.HAKAI.on('settings-update', s => applySettings(s));
+</script>
+</body>
+</html>
