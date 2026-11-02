@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @font-face {
+    font-family: 'Hakai Neo';
+    src: url('assets/fonts/HakaiNeo.ttf') format('truetype');
+    font-display: block;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100vw; height:100vh; overflow:hidden; background:#000; }
+
+  :root {
+    --ck: 120px;
+  }
+
+  #wp-video, #wp-image, #wp-gif {
+    position:fixed; inset:0; width:100%; height:100%;
+    object-fit:cover; display:none;
+    opacity:0; transition:opacity .9s ease;
+  }
+  #wp-video.show, #wp-image.show, #wp-gif.show { opacity:1; }
+  #wp-scrim {
+    position:fixed; inset:0; background:rgba(0,0,0,0);
+    pointer-events:none; z-index:5;
+  }
+
+  /* ── shared: glowing label with side lines (the weekday style) ───── */
+  .neo {
+    font-family:'Hakai Neo', 'Segoe UI', sans-serif;
+    color:#fff;
+    text-transform:uppercase;
+    text-shadow: 0 0 10px rgba(255,255,255,.35), 0 2px 26px rgba(0,0,0,.6);
+  }
+  .tag { display:flex; align-items:center; justify-content:center; white-space:nowrap; }
+
+  /* ── Name banner ─────────────────────────────────────────────────── */
+  #banner {
+    position:fixed; z-index:10; top:5vh; left:0; right:0;
+    pointer-events:none; transition:opacity .4s ease;
+    font-size:clamp(26px, 3.3vw, 64px); letter-spacing:.34em;
+  }
+  #banner .bn { padding-left:.34em; }   /* balances trailing letter-spacing */
+  #banner.hidden { opacity:0; }
+
+  /* ── Clock ───────────────────────────────────────────────────────── */
+  #clock {
+    position:fixed; z-index:10; pointer-events:none;
+    display:flex; flex-direction:column; gap:calc(var(--ck) * .14);
+    transition:opacity .4s ease;
+  }
+  #clock.hidden { opacity:0; }
+  #clock.pos-center       { top:50%; left:50%; transform:translate(-50%,-50%); align-items:center; }
+  #clock.pos-top-left     { top:120px;  left:60px;  align-items:flex-start; }
+  #clock.pos-top-right    { top:120px;  right:60px; align-items:flex-end; }
+  #clock.pos-bottom-left  { bottom:60px; left:60px;  align-items:flex-start; }
+  #clock.pos-bottom-right { bottom:60px; right:60px; align-items:flex-end; }
+
+  .ck-day  { font-size:calc(var(--ck) * .30); letter-spacing:.3em; }
+  .ck-day span.t { padding-left:.3em; }
+  .ck-time { display:flex; align-items:flex-end; gap:.28em; font-size:var(--ck); line-height:1; letter-spacing:.1em; }
+  .ck-time .ap { font-size:.34em; letter-spacing:.2em; padding-bottom:.18em; color:rgba(255,255,255,.85); }
+  .ck-date { font-size:calc(var(--ck) * .2); letter-spacing:.28em; color:rgba(255,255,255,.88); }
+
+  /* ── Now-playing widget (glass) ─────────────────────────────────── */
+  :root { --mw: min(500px, 90vw); }
+  #media {
+    position:fixed; z-index:11; pointer-events:none;
+    width:var(--mw); padding:18px 22px 18px 18px; border-radius:32px;
+    display:flex; align-items:center; gap:18px; overflow:hidden;
+    font-family:'Poppins','Segoe UI',system-ui,sans-serif; color:#fff;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,.07) 55%, rgba(255,255,255,.14) 100%),
+      rgba(18,10,45,.30);
+    -webkit-backdrop-filter:blur(26px) saturate(1.7); backdrop-filter:blur(26px) saturate(1.7);
+    border:1px solid rgba(255,255,255,.38);
+    box-shadow:0 22px 50px rgba(0,0,0,.38), inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(255,255,255,.10), inset 1px 0 0 rgba(255,255,255,.18);
+    opacity:0; transform:translateY(16px) scale(.97);
+    transition:opacity .5s ease, transform .5s ease;
+  }
+  #media.show { opacity:1; transform:none; pointer-events:auto; }
+  #media::before { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+                   background:radial-gradient(120% 90% at 0% 0%, rgba(255,255,255,.28), transparent 55%); }
+  #media.pos-bottom-center { bottom:6vh; left:50%; margin-left:calc(var(--mw) / -2); }
+  #media.pos-bottom-left   { bottom:6vh; left:48px; }
+  #media.pos-bottom-right  { bottom:6vh; right:48px; }
+  #media > * { position:relative; z-index:1; }
+
+  #md-art {
+    flex:none; width:104px; height:104px; border-radius:24px; overflow:hidden;
+    background:linear-gradient(145deg, rgba(255,255,255,.30), rgba(255,255,255,.08));
+    background-size:cover; background-position:center;
+    border:1px solid rgba(255,255,255,.45);
+    display:flex; align-items:center; justify-content:center;
+    font-size:46px; font-weight:700; color:rgba(255,255,255,.95);
+    box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.6);
+  }
+  #md-art.has-img #md-letter { display:none; }
+  #md-art.live #md-letter { display:none; }
+  #md-live { position:absolute; inset:0; width:100%; height:100%; display:none; }
+  #md-art.live #md-live { display:block; }
+  #md-art .gloss { position:absolute; inset:0; pointer-events:none; background:linear-gradient(135deg, rgba(255,255,255,.30), transparent 45%); }
+
+  .md-mid { flex:1; min-width:0; }
+  #md-title  { font-size:22px; font-weight:700; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 10px rgba(0,0,0,.35); }
+  #md-artist { font-size:16px; font-weight:500; color:rgba(255,255,255,.85); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 8px rgba(0,0,0,.3); }
+  .md-time   { display:flex; align-items:center; gap:10px; margin-top:10px; font-size:13px; font-weight:500; color:rgba(255,255,255,.88); font-variant-numeric:tabular-nums; }
+  .md-bar    { flex:1; height:6px; border-radius:6px; background:rgba(255,255,255,.26); overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,.25); }
+  #md-fill   { height:100%; width:0%; border-radius:6px; background:linear-gradient(90deg,#ffffff,#d9b8ff); box-shadow:0 0 10px rgba(255,255,255,.65); transition:width .5s linear; }
+
+  .md-ctl { display:flex; align-items:center; gap:10px; flex:none; }
+  .mbtn {
+    width:44px; height:44px; padding:0; border-radius:50%; cursor:pointer; color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.36);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+    transition:transform .15s ease, background .2s ease;
+  }
+  .mbtn:hover  { background:rgba(255,255,255,.28); transform:scale(1.07); }
+  .mbtn:active { transform:scale(.92); }
+  .mbtn svg { width:22px; height:22px; display:block; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .mbtn.big { width:58px; height:58px; border-color:rgba(255,255,255,.5);
+              background:linear-gradient(145deg, rgba(185,105,255,.95), rgba(100,50,225,.95));
+              box-shadow:0 8px 22px rgba(120,60,255,.55), inset 0 1.5px 0 rgba(255,255,255,.5); }
+  .mbtn.big svg { width:26px; height:26px; fill:#fff; stroke:none; }
+</style>
+</head>
+<body>
+
+  <video id="wp-video" autoplay loop playsinline></video>
+  <img   id="wp-image" alt="wallpaper" />
+  <img   id="wp-gif"   alt="animated wallpaper" />
+  <div   id="wp-scrim"></div>
+
+  <!-- Name banner -->
+  <div id="banner" class="neo tag hidden">
+    <span class="bn" id="bn-text">HAKAI</span>
+  </div>
+
+  <!-- Clock / day / date -->
+  <div id="clock" class="hidden pos-center">
+    <div class="ck-day neo tag"><span class="t" id="ck-day">MONDAY</span></div>
+    <div class="ck-time neo"><span id="ck-hm">00:00</span><span class="ap" id="ck-ap">AM</span></div>
+    <div class="ck-date neo" id="ck-date">JANUARY 1, 2026</div>
+  </div>
+
+  <!-- Now playing -->
+  <div id="media" class="pos-bottom-center">
+    <div id="md-art"><canvas id="md-live" width="208" height="208"></canvas><span id="md-letter">M</span><i class="gloss"></i></div>
+    <div class="md-mid">
+      <div id="md-title">Song title</div>
+      <div id="md-artist">Artist</div>
+      <div class="md-time"><span id="md-cur">0:00</span><div class="md-bar"><div id="md-fill"></div></div><span id="md-dur">0:00</span></div>
+    </div>
+    <div class="md-ctl">
+      <button class="mbtn" data-cmd="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6 5v14"/><path d="M19 5L9 12l10 7z"/></svg></button>
+      <button class="mbtn big" id="md-pp" data-cmd="toggle" aria-label="Play or pause"></button>
+      <button class="mbtn" data-cmd="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M18 5v14"/><path d="M5 5l10 7-10 7z"/></svg></button>
+    </div>
+  </div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const video = $('wp-video'), image = $('wp-image'), gif = $('wp-gif'), scrim = $('wp-scrim');
+  const clockEl = $('clock'), bannerEl = $('banner'), mediaEl = $('media');
+
+  let cfg = {};
+
+  // ── Clock ───────────────────────────────────────────────────────────
+  const DAYS   = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+
+  function tick() {
+    const now = new Date();
+    const h = now.getHours();
+    const hh = String(h % 12 === 0 ? 12 : h % 12).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    $('ck-hm').textContent = `${hh}:${mm}`;
+    $('ck-ap').textContent = h >= 12 ? 'PM' : 'AM';
+    $('ck-day').textContent = DAYS[now.getDay()];
+    $('ck-date').textContent = `${MONTHS[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // ── Settings ────────────────────────────────────────────────────────
+  const SIZES = { small: 64, medium: 92, large: 124, xlarge: 168 };
+
+  function applySettings(s) {
+    cfg = s || {};
+    video.muted  = cfg.muted !== false;
+    video.volume = (cfg.volume ?? 50) / 100;
+    scrim.style.background = `rgba(0,0,0,${(cfg.dim ?? 0) / 100})`;
+
+    const ckClass = 'pos-' + (cfg.clockPosition || 'center') + (cfg.showClock === false ? ' hidden' : '');
+    if (clockEl.className !== ckClass) clockEl.className = ckClass;
+    document.documentElement.style.setProperty('--ck', (SIZES[cfg.clockSize] || 124) + 'px');
+
+    $('bn-text').textContent = (cfg.bannerName || 'HAKAI').trim() || 'HAKAI';
+    bannerEl.classList.toggle('hidden', cfg.showBanner === false);
+
+    const mdClass = (mediaEl.classList.contains('show') ? 'show ' : '') + 'pos-' + (cfg.mediaPosition || 'bottom-center');
+    if (mediaEl.className !== mdClass) mediaEl.className = mdClass;
+    renderMedia(true);
+  }
+
+  // ── Now playing ─────────────────────────────────────────────────────
+  let media = null, pausedSince = 0, shownKey = '', hasThumb = false;
+  // The song position is estimated here, because many players (browsers!) report it only once
+  let basePos = 0, baseTime = 0, lastRepPos = -1, lastStatus = '', trackKey = '';
+  const art = $('md-art');
+  const PAUSE_ICON = '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4.2" height="14" rx="1.4"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4"/></svg>';
+  const PLAY_ICON  = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
+
+  function fmt(sec) {
+    sec = Math.max(0, Math.floor(sec || 0));
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  }
+  function currentPos() {
+    if (!media) return 0;
+    let cur = basePos;
+    if (media.status === 'playing') cur += (Date.now() - baseTime) / 1000;
+    if (media.dur > 0) cur = Math.min(cur, media.dur);
+    return Math.max(0, cur);
+  }
+
+  function onMedia(m) {
+    if (m) {
+      const key = m.title + '|' + m.artist + '|' + m.app;
+      const posChanged = m.pos !== lastRepPos;
+      if (key !== trackKey || posChanged) {            // new song, or the player really told us a new position
+        basePos = m.pos || 0; baseTime = Date.now();
+      } else if (m.status !== lastStatus) {            // pause / resume with a stale position: keep what we counted
+        basePos = currentPos(); baseTime = Date.now();
+      }
+      trackKey = key; lastRepPos = m.pos; lastStatus = m.status;
+    }
+    media = m;
+    if (m && m.status === 'playing') pausedSince = 0;
+    else if (m && !pausedSince) pausedSince = Date.now();
+    renderMedia();
+  }
+
+  function renderMedia() {
+    const enabled = cfg.showMedia !== false;
+    const live = enabled && media && media.title &&
+      (media.status === 'playing' || (media.status === 'paused' && pausedSince && Date.now() - pausedSince < 10000));
+    mediaEl.classList.toggle('show', !!live);
+    if (!live) { setInteractive(false); return; }
+
+    const key = media.title + '|' + media.artist + '|' + (media.thumb ? media.thumb.length : 0);
+    if (key !== shownKey) {
+      shownKey = key;
+      $('md-title').textContent  = media.title;
+      $('md-artist').textContent = media.artist || media.album || '';
+      hasThumb = !!media.thumb;
+      art.style.backgroundImage = hasThumb ? `url("${media.thumb}")` : '';
+      art.classList.toggle('has-img', hasThumb);
+      $('md-letter').textContent = (media.title.trim()[0] || 'M').toUpperCase();
+    }
+    const playing = media.status === 'playing';
+    const pp = $('md-pp');
+    const want = playing ? 'pause' : 'play';
+    if (pp.dataset.s !== want) { pp.dataset.s = want; pp.innerHTML = playing ? PAUSE_ICON : PLAY_ICON; }
+
+    const cur = currentPos();
+    $('md-cur').textContent = fmt(cur);
+    $('md-dur').textContent = media.dur > 0 ? fmt(media.dur) : '--:--';
+    $('md-fill').style.width = media.dur > 0 ? (cur / media.dur * 100) + '%' : '0%';
+  }
+  setInterval(renderMedia, 500);
+
+  // ── The cover tile shows the running wallpaper (drawn from the video that is already playing) ──
+  const live = $('md-live'), lctx = live.getContext('2d');
+  let liveLast = 0;
+  function liveSource() {
+    if (video.style.display !== 'none' && video.readyState >= 2 && video.videoWidth) return [video, video.videoWidth, video.videoHeight];
+    if (gif.style.display   !== 'none' && gif.naturalWidth)   return [gif,   gif.naturalWidth,   gif.naturalHeight];
+    if (image.style.display !== 'none' && image.naturalWidth) return [image, image.naturalWidth, image.naturalHeight];
+    return null;
+  }
+  function liveLoop(ts) {
+    const want = mediaEl.classList.contains('show') && !hasThumb;
+    if (!want) { art.classList.remove('live'); setTimeout(() => requestAnimationFrame(liveLoop), 400); return; }
+    if (ts - liveLast > 40) {                       // about 25 frames per second
+      liveLast = ts;
+      const src = liveSource();
+      if (src) {
+        const [el, w, h] = src, S = live.width, sc = Math.max(S / w, S / h), dw = w * sc, dh = h * sc;
+        try { lctx.drawImage(el, (S - dw) / 2, (S - dh) / 2, dw, dh); art.classList.add('live'); } catch {}
+      } else art.classList.remove('live');
+    }
+    requestAnimationFrame(liveLoop);
+  }
+  requestAnimationFrame(liveLoop);
+
+  // ── The wallpaper lets clicks through to the desktop, except while the pointer is over the song card ──
+  let interactive = false;
+  function setInteractive(on) {
+    if (on === interactive) return;
+    interactive = on;
+    try { window.HAKAI.wallpaperInteractive(on); } catch {}
+  }
+  document.addEventListener('mousemove', e => {
+    setInteractive(mediaEl.classList.contains('show') && !!(e.target.closest && e.target.closest('#media')));
+  });
+  document.addEventListener('mouseleave', () => setInteractive(false));
+
+  document.querySelectorAll('.mbtn').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const cmd = b.dataset.cmd;
+    if (cmd === 'toggle' && media) {                 // react instantly; the next poll confirms
+      const cur = currentPos(), playing = media.status === 'playing';
+      basePos = cur; baseTime = Date.now();
+      media.status = playing ? 'paused' : 'playing';
+      lastStatus = media.status;
+      pausedSince = playing ? Date.now() : 0;
+      renderMedia();
+    }
+    try { window.HAKAI.mediaControl(cmd); } catch {}
+  }));
+
+  // ── Wallpaper loading ───────────────────────────────────────────────
+  function reveal(el) {
+    el.style.display = 'block';
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  }
+  function hideAll() {
+    for (const el of [video, image, gif]) { el.classList.remove('show'); el.style.display = 'none'; }
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    image.removeAttribute('src');
+    gif.removeAttribute('src');
+  }
+
+  let loadedKey = null;
+  window.HAKAI.on('load-wallpaper', async ({ entry, settings: s }) => {
+    const key = entry.id + '|' + entry.file;
+    if (key === loadedKey) { applySettings(s); return; }   // already showing this one
+    loadedKey = key;
+    hideAll();
+    applySettings(s);
+    const url = await window.HAKAI.fileUrl(entry.file);
+    if (!url) return;
+    if (entry.type === 'video') {
+      video.src = url;
+      reveal(video);
+      video.play().catch(() => {});
+    } else if (entry.type === 'gif') {
+      gif.src = url;
+      reveal(gif);
+    } else {
+      image.src = url;
+      reveal(image);
+    }
+  });
+
+  // Re-attaching the window to the desktop resets the GPU surface and can drop the video decoder → restart it
+  let vRetry = 0;
+  video.addEventListener('error', () => {
+    console.error('video error code', video.error && video.error.code, video.error && video.error.message);
+    const src = video.getAttribute('src');
+    if (src && vRetry < 6) {
+      vRetry++;
+      setTimeout(() => { video.removeAttribute('src'); video.load(); video.src = src; video.play().catch(() => {}); }, 700);
+    }
+  });
+  video.addEventListener('playing', () => { vRetry = 0; console.log('video playing', video.videoWidth + 'x' + video.videoHeight); });
+  window.HAKAI.on('clear-wallpaper', () => { loadedKey = null; hideAll(); });
+  window.HAKAI.on('settings-update', s => applySettings(s));
+  window.HAKAI.on('media-update', m => onMedia(m));
+
+  // initial state (covers the case where no wallpaper is selected yet)
+  document.fonts.ready.then(() => {
+    window.HAKAI.settingsGet().then(applySettings);
+    window.HAKAI.mediaGet().then(m => onMedia(m));
+    window.HAKAI.wallpaperReady();
+  });
+</script>
+</body>
+</html>

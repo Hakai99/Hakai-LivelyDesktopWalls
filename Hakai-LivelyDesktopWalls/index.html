@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HAKAI Wallpaper Engine</title>
+<style>
+  @font-face {
+    font-family:'Hakai Neo';
+    src:url('assets/fonts/HakaiNeo.ttf') format('truetype');
+    font-display:block;
+  }
+
+  /* ════════════════════════ THEMES ════════════════════════ */
+  :root, body[data-theme="dark"] {
+    --txt:#ece8ff;  --txt2:#a79fd6;  --txt3:#6f6aa0;
+    --bg:#090818;
+    --bg-glow1:rgba(160,30,230,.55);  --bg-glow2:rgba(0,170,240,.45);  --bg-glow3:rgba(90,40,220,.35);
+    --clay:linear-gradient(145deg, rgba(74,50,160,.55), rgba(18,15,50,.80));
+    --clay-shadow:
+      6px 8px 16px rgba(0,0,0,.50),
+      -3px -3px 9px rgba(130,110,255,.09),
+      inset 1px 1px 3px rgba(255,255,255,.10),
+      inset -3px -4px 9px rgba(0,0,0,.30);
+    --clay-border:rgba(160,140,255,.14);
+    --inset:rgba(8,6,28,.55);
+    --inset-shadow:inset 5px 6px 12px rgba(0,0,0,.55), inset -4px -4px 10px rgba(130,110,255,.08);
+    --chip:linear-gradient(145deg, rgba(90,66,190,.45), rgba(30,24,80,.7));
+    --chip-shadow:4px 5px 12px rgba(0,0,0,.45), -3px -3px 8px rgba(130,110,255,.10), inset 1px 1px 3px rgba(255,255,255,.12);
+    --grad:linear-gradient(135deg,#9a2fe6 0%,#5b3df0 55%,#2f7bff 100%);
+    --grad-shadow:6px 9px 20px rgba(80,40,210,.55), inset 2px 2px 5px rgba(255,255,255,.38), inset -3px -5px 9px rgba(0,0,40,.30);
+    --ring:#46c8ff;
+    /* toggle (from your switch code, dark-adapted) */
+    --sw-track:#171533;
+    --sw-track-sh:inset -8px -8px 16px rgba(130,110,255,.10), inset 8px 8px 16px rgba(0,0,0,.65);
+    --sw-knob:linear-gradient(145deg,#403b72,#2a2652);
+    --sw-knob-sh:-4px -4px 8px rgba(150,130,255,.16), 4px 4px 8px rgba(0,0,0,.6);
+    --sw-knob-on:linear-gradient(145deg,#4a4584,#322d62);
+    --sw-knob-hover:-4px -4px 12px rgba(150,130,255,.2), 4px 4px 12px rgba(0,0,0,.7);
+    --sw-led:#6b6890;  --sw-led-sh:0 0 10px 2px rgba(0,0,0,.35);
+  }
+  body[data-theme="light"] {
+    --txt:#241b4d;  --txt2:#5d5490;  --txt3:#8d86b8;
+    --bg:#e7e1fb;
+    --bg-glow1:rgba(236,110,255,.55);  --bg-glow2:rgba(90,200,255,.55);  --bg-glow3:rgba(150,120,255,.40);
+    --clay:linear-gradient(145deg,#f7f4ff,#dad5f4);
+    --clay-shadow:
+      6px 8px 16px rgba(110,90,190,.28),
+      -4px -4px 10px rgba(255,255,255,.95),
+      inset 1px 1px 3px rgba(255,255,255,.95),
+      inset -3px -4px 9px rgba(150,130,220,.26);
+    --clay-border:rgba(255,255,255,.7);
+    --inset:rgba(205,198,240,.55);
+    --inset-shadow:inset 5px 6px 12px rgba(140,120,205,.40), inset -5px -5px 11px rgba(255,255,255,.95);
+    --chip:linear-gradient(145deg,#faf8ff,#dcd7f3);
+    --chip-shadow:4px 5px 12px rgba(120,100,200,.28), -4px -4px 10px rgba(255,255,255,.95), inset 1px 1px 3px rgba(255,255,255,.9);
+    --grad:linear-gradient(135deg,#a23af0 0%,#6a47f5 55%,#3b88ff 100%);
+    --grad-shadow:6px 9px 20px rgba(110,70,230,.45), inset 2px 2px 5px rgba(255,255,255,.55), inset -3px -5px 9px rgba(40,10,120,.22);
+    --ring:#7a4dff;
+    /* toggle — exactly your original colours */
+    --sw-track:#d6d6d6;
+    --sw-track-sh:inset -8px -8px 16px #ffffff, inset 8px 8px 16px #b0b0b0;
+    --sw-knob:linear-gradient(145deg,#d9d9d9,#bfbfbf);
+    --sw-knob-sh:-4px -4px 8px #ffffff, 4px 4px 8px #b0b0b0;
+    --sw-knob-on:linear-gradient(145deg,#cfcfcf,#a9a9a9);
+    --sw-knob-hover:-4px -4px 12px #ffffff, 4px 4px 12px #9b9b9b;
+    --sw-led:grey;  --sw-led-sh:0 0 10px 2px rgba(0,0,0,.2);
+  }
+
+  /* ════════════════════════ BASE ════════════════════════ */
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; }
+  body {
+    font-family:'Poppins','Segoe UI',system-ui,-apple-system,sans-serif;
+    color:var(--txt); background:var(--bg); font-size:14px;
+    user-select:none; -webkit-user-select:none;
+    transition:background .4s, color .3s;
+  }
+  button { font-family:inherit; color:inherit; border:none; background:none; cursor:pointer; }
+  input  { font-family:inherit; color:inherit; }
+
+  .bg { position:fixed; inset:0; z-index:0; overflow:hidden;
+        background:linear-gradient(135deg, var(--bg), var(--bg)); }
+  .blob { position:absolute; border-radius:50%; }
+  .b1 { width:900px; height:900px; left:-380px; bottom:-460px; background:radial-gradient(circle, var(--bg-glow1), transparent 66%); }
+  .b2 { width:900px; height:900px; right:-380px; top:-460px;  background:radial-gradient(circle, var(--bg-glow2), transparent 66%); }
+  .b3 { width:760px; height:760px; right:-260px; bottom:-440px; background:radial-gradient(circle, var(--bg-glow3), transparent 66%); }
+
+  .app { position:relative; z-index:1; height:100%; display:flex; flex-direction:column; padding:14px 18px 18px; gap:14px; }
+
+  /* ── Titlebar ─────────────────────────────────────────────── */
+  .titlebar { height:44px; display:flex; align-items:center; gap:14px; -webkit-app-region:drag; flex:none; }
+  .titlebar .no-drag { -webkit-app-region:no-drag; }
+  .logo { width:34px; height:34px; flex:none; filter:drop-shadow(0 4px 8px rgba(100,60,255,.5)); }
+  .vr { width:1px; height:22px; background:var(--txt3); opacity:.4; }
+  .brand { letter-spacing:.34em; font-size:12px; font-weight:600; color:var(--txt2); }
+  .spacer { flex:1; }
+  .theme-box { display:flex; align-items:center; gap:10px; font-size:15px; color:var(--txt2); }
+  .win-btn {
+    width:42px; height:42px; border-radius:50%;
+    background:var(--chip); box-shadow:var(--chip-shadow); border:1px solid var(--clay-border);
+    display:flex; align-items:center; justify-content:center; transition:transform .15s;
+  }
+  .win-btn:hover { transform:translateY(-1px); }
+  .win-btn:active { transform:scale(.94); }
+  .win-btn.close:hover { background:linear-gradient(145deg,#ff5d8a,#c4204f); color:#fff; }
+  .win-btn svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* ── Layout ───────────────────────────────────────────────── */
+  .body { flex:1; min-height:0; display:grid; grid-template-columns:clamp(180px,17vw,216px) minmax(0,1fr) clamp(280px,25vw,322px); gap:18px; }
+  .clay { background:var(--clay); border-radius:30px; box-shadow:var(--clay-shadow); border:1px solid var(--clay-border); }
+  .inset { background:var(--inset); border-radius:18px; box-shadow:var(--inset-shadow); }
+
+  /* ── Sidebar ──────────────────────────────────────────────── */
+  .side { padding:18px 14px; display:flex; flex-direction:column; gap:10px; }
+  .nav-btn {
+    display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:22px;
+    font-size:15px; font-weight:500; color:var(--txt2); text-align:left; transition:color .2s, background .2s, box-shadow .2s;
+  }
+  .nav-btn svg { width:22px; height:22px; flex:none; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .nav-btn:hover { color:var(--txt); background:var(--inset); box-shadow:var(--inset-shadow); }
+  .nav-btn.active { color:#fff; background:var(--grad); box-shadow:var(--grad-shadow); }
+  .import-btn {
+    margin-top:auto; display:flex; align-items:center; justify-content:center; gap:10px;
+    padding:15px 10px; border-radius:999px; font-weight:600; font-size:13px; white-space:nowrap; color:#fff;
+    background:var(--grad); box-shadow:var(--grad-shadow); transition:transform .15s;
+  }
+  .import-btn:hover { transform:translateY(-2px); }
+  .import-btn:active { transform:scale(.97); }
+  .import-btn svg { width:18px; height:18px; flex:none; stroke:#fff; stroke-width:2.2; fill:none; stroke-linecap:round; }
+
+  /* ── Center ───────────────────────────────────────────────── */
+  .center { display:flex; flex-direction:column; gap:16px; min-width:0; min-height:0; }
+  .toprow { display:flex; gap:14px; align-items:center; flex:none; }
+  .search { flex:1; display:flex; align-items:center; gap:12px; padding:0 20px; height:52px; border-radius:999px; }
+  .search svg { width:20px; height:20px; stroke:var(--txt2); fill:none; stroke-width:2; stroke-linecap:round; }
+  .search input { flex:1; background:none; border:none; outline:none; font-size:14px; user-select:text; -webkit-user-select:text; }
+  .search input::placeholder { color:var(--txt3); }
+  .count { height:52px; padding:0 20px; border-radius:999px; display:flex; align-items:center; gap:10px; font-size:13px; font-weight:500; color:var(--txt2);
+           background:var(--chip); box-shadow:var(--chip-shadow); border:1px solid var(--clay-border); white-space:nowrap; }
+  .count svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linejoin:round; }
+
+  .grid { flex:1; min-height:0; overflow-y:auto; padding:6px 10px 20px 4px; display:grid;
+          grid-template-columns:repeat(auto-fill,minmax(146px,1fr)); gap:16px; align-content:start; }
+  .card {
+    position:relative; height:132px; border-radius:24px; overflow:hidden; cursor:pointer;
+    background:var(--clay); box-shadow:var(--clay-shadow); border:1px solid var(--clay-border);
+    padding:6px; transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s;
+  }
+  .card:hover { transform:translateY(-3px); }
+  .card .thumb { width:100%; height:100%; object-fit:cover; border-radius:18px; display:block; background:#120f30;
+                 box-shadow:inset 0 0 0 1px rgba(255,255,255,.06); }
+  .card .ph { width:100%; height:100%; border-radius:18px; display:flex; align-items:center; justify-content:center; font-size:30px;
+              background:linear-gradient(145deg,#2c1d6b,#120f30); }
+  .badge { position:absolute; top:16px; left:16px; padding:4px 11px; border-radius:999px; font-size:10.5px; font-weight:600; letter-spacing:.06em;
+           color:#fff; background:rgba(14,10,40,.62); border:1px solid rgba(255,255,255,.14); }
+  .badge.act { left:auto; right:16px; background:var(--grad); border:none; box-shadow:var(--grad-shadow); }
+  .card.active-card { box-shadow:var(--clay-shadow), 0 0 0 2px var(--ring), 0 0 24px color-mix(in srgb, var(--ring) 55%, transparent); }
+  .card .cap { position:absolute; left:6px; right:6px; bottom:6px; padding:22px 14px 11px; border-radius:0 0 18px 18px;
+               background:linear-gradient(0deg, rgba(8,5,30,.85), transparent); color:#fff; font-size:12.5px; font-weight:500;
+               white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .card .acts { position:absolute; left:14px; right:14px; bottom:44px; display:flex; gap:8px; opacity:0; transform:translateY(6px); transition:opacity .2s, transform .2s; }
+  .card:hover .acts { opacity:1; transform:none; }
+  .mini { padding:7px 14px; border-radius:999px; font-size:12px; font-weight:600; color:#fff; background:rgba(14,10,40,.7); border:1px solid rgba(255,255,255,.16); }
+  .mini.go { background:var(--grad); border:none; box-shadow:var(--grad-shadow); flex:1; }
+  .empty { grid-column:1/-1; text-align:center; padding:70px 20px; color:var(--txt2); }
+  .empty .big { font-size:46px; margin-bottom:12px; }
+  .empty h3 { color:var(--txt); font-size:18px; margin-bottom:6px; }
+
+  /* ── Right panel ──────────────────────────────────────────── */
+  .panel { padding:16px 14px 16px 16px; min-height:0; display:flex; }
+  .panel-scroll { flex:1; overflow-y:auto; padding-right:4px; display:flex; flex-direction:column; gap:14px; }
+  .preview { aspect-ratio:16/9; border-radius:22px; overflow:hidden; flex:none; position:relative; background:linear-gradient(145deg,#2c1d6b,#120f30);
+             box-shadow:var(--inset-shadow), 0 0 0 1px var(--clay-border); display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; }
+  .preview img, .preview video { width:100%; height:100%; object-fit:cover; display:block; }
+  .eyebrow { font-size:11px; letter-spacing:.3em; font-weight:600; color:var(--txt2); }
+  .now { padding:12px 14px; border-radius:20px; display:flex; align-items:center; gap:12px; }
+  .now .ico { width:40px; height:40px; border-radius:12px; background:var(--grad); box-shadow:var(--grad-shadow); display:flex; align-items:center; justify-content:center; font-size:18px; flex:none; }
+  .now .nm { font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .now .tp { font-size:11.5px; color:var(--txt2); margin-top:1px; }
+  .now > div:last-child { min-width:0; }
+  .power { display:flex; align-items:center; justify-content:center; gap:10px; padding:14px; border-radius:999px; font-weight:600; font-size:14px;
+           background:var(--chip); box-shadow:var(--chip-shadow); border:1px solid var(--clay-border); transition:transform .15s; flex:none; }
+  .power:active { transform:scale(.97); }
+  .power .sq { width:14px; height:14px; border-radius:3px; background:#ff4f9a; box-shadow:0 0 10px #ff4f9a; }
+  .power.off .sq { background:#41e0a0; box-shadow:0 0 10px #41e0a0; border-radius:50%; }
+
+  .sec { padding:16px; border-radius:24px; display:flex; flex-direction:column; gap:13px; flex:none; background:var(--chip);
+         box-shadow:var(--chip-shadow); border:1px solid var(--clay-border); }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .row .lbl { font-size:13.5px; font-weight:500; }
+  .row .sub { font-size:11px; color:var(--txt3); margin-top:1px; }
+  .row .val { font-size:13px; color:var(--txt2); font-variant-numeric:tabular-nums; }
+
+  /* sliders */
+  input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:12px; border-radius:12px; outline:none; cursor:pointer;
+    background:linear-gradient(90deg,#8a35e8,#4d6bff) 0/var(--p,50%) 100% no-repeat, var(--inset); box-shadow:var(--inset-shadow); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:24px; height:24px; border-radius:50%;
+    background:linear-gradient(145deg,#8f7bff,#4f3cd8); box-shadow:3px 4px 9px rgba(0,0,0,.45), inset 2px 2px 4px rgba(255,255,255,.5), inset -2px -3px 5px rgba(20,0,90,.35); border:none; }
+
+  /* clock preview */
+  .ck-prev { padding:16px 10px 14px; text-align:center; background:linear-gradient(145deg,#0e0b2b,#1b1348); border-radius:18px;
+             box-shadow:inset 5px 6px 14px rgba(0,0,0,.6), inset -3px -3px 8px rgba(130,110,255,.10); color:#fff; }
+  .neo { font-family:'Hakai Neo','Segoe UI',sans-serif; text-transform:uppercase; text-shadow:0 0 8px rgba(255,255,255,.35); }
+  .ck-prev .d { display:flex; align-items:center; justify-content:center; font-size:13px; letter-spacing:.3em; }
+  .ck-prev .t { font-size:34px; letter-spacing:.1em; margin:8px 0 6px; }
+  .ck-prev .t small { font-size:.4em; letter-spacing:.2em; margin-left:4px; }
+  .ck-prev .dt { font-size:10px; letter-spacing:.24em; opacity:.85; }
+
+  /* chips (segmented) */
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { padding:8px 13px; border-radius:999px; font-size:12px; font-weight:500; color:var(--txt2);
+          background:var(--chip); box-shadow:var(--chip-shadow); border:1px solid var(--clay-border); transition:color .15s, background .25s, box-shadow .25s; }
+  .chip:hover { color:var(--txt); }
+  .chip.active { color:#fff; background:var(--grad); box-shadow:var(--grad-shadow); border-color:transparent; }
+  .field { width:100%; padding:11px 16px; border-radius:999px; border:none; outline:none; font-size:13.5px; letter-spacing:.06em;
+           background:var(--inset); box-shadow:var(--inset-shadow); user-select:text; -webkit-user-select:text; }
+  .status { font-size:12px; color:var(--txt2); padding:10px 14px; border-radius:16px; line-height:1.45; word-break:break-word; }
+  .status b { color:var(--txt); }
+  .mctl { display:flex; align-items:center; justify-content:center; gap:14px; }
+  .mc { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--txt);
+        background:var(--chip); box-shadow:var(--chip-shadow); border:1px solid var(--clay-border); transition:transform .15s ease; }
+  .mc svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .mc.big { width:54px; height:54px; color:#fff; background:var(--grad); box-shadow:var(--grad-shadow); border:none; }
+  .mc.big svg { width:24px; height:24px; }
+  .mc:active { transform:scale(.92); }
+  .opts { display:none; flex-direction:column; gap:12px; }
+  .opts.visible { display:flex; }
+
+  /* ════════ Your toggle switch (converted from the styled-components code) ════════ */
+  .sw-scale { width:90px; height:36px; flex:none; position:relative; }
+  .switch-container {
+    position:absolute; left:0; top:0; width:150px; height:60px;
+    transform:scale(.6); transform-origin:0 0;
+    background:var(--sw-track); border-radius:50px; box-shadow:var(--sw-track-sh);
+  }
+  .toggle-checkbox { display:none; }
+  .switch { position:absolute; top:50%; left:0; width:100%; height:100%; transform:translateY(-50%); border-radius:50px; overflow:hidden; cursor:pointer; }
+  .toggle {
+    position:absolute; width:80px; height:50px; background:var(--sw-knob); border-radius:50px; top:5px; left:5px;
+    box-shadow:var(--sw-knob-sh); transition:left .3s ease-in-out, box-shadow .3s ease-in-out, background .3s ease-in-out;
+    display:flex; align-items:center; justify-content:flex-start; padding-left:10px;
+  }
+  .led { width:10px; height:10px; background:var(--sw-led); border-radius:50%; box-shadow:var(--sw-led-sh); transition:background .3s ease-in-out, box-shadow .3s ease-in-out; }
+  .toggle-checkbox:checked + .switch .toggle { left:65px; background:var(--sw-knob-on); }
+  .toggle-checkbox:checked + .switch .led { background:yellow; box-shadow:0 0 15px 4px yellow; }
+  .switch:hover .toggle { box-shadow:var(--sw-knob-hover); }
+
+  /* scrollbars */
+  ::-webkit-scrollbar { width:8px; }
+  ::-webkit-scrollbar-thumb { background:rgba(150,130,255,.30); border-radius:8px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+
+  /* ── Motion ── */
+  @media (max-width:1180px) { .count { display:none; } .brand { letter-spacing:.2em; } .nav-btn { font-size:14px; padding:14px 12px; gap:10px; white-space:nowrap; } }
+  @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+
+  /* ── Context menu + modal ─────────────────────────────────── */
+  #ctx-menu { position:fixed; z-index:50; min-width:160px; padding:8px; border-radius:20px; display:none; background:var(--clay); box-shadow:var(--clay-shadow); border:1px solid var(--clay-border); }
+  #ctx-menu.show { display:block; }
+  #ctx-menu button { display:block; width:100%; text-align:left; padding:10px 14px; border-radius:14px; font-size:13px; }
+  #ctx-menu button:hover { background:var(--grad); color:#fff; }
+  #ctx-menu button.danger:hover { background:linear-gradient(135deg,#ff5d8a,#c4204f); }
+  #rename-overlay { position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; background:rgba(5,3,20,.55); }
+  #rename-overlay.show { display:flex; }
+  .modal { width:360px; padding:24px; border-radius:30px; display:flex; flex-direction:column; gap:16px; background:var(--clay); box-shadow:var(--clay-shadow); border:1px solid var(--clay-border); }
+  .modal h3 { font-size:17px; }
+  .modal .btns { display:flex; gap:10px; justify-content:flex-end; }
+  .btn { padding:10px 20px; border-radius:999px; font-weight:600; font-size:13px; background:var(--chip); box-shadow:var(--chip-shadow); border:1px solid var(--clay-border); }
+  .btn.primary { background:var(--grad); box-shadow:var(--grad-shadow); color:#fff; border:none; }
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="bg"><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i></div>
+
+<div class="app">
+
+  <!-- ═════ Title bar ═════ -->
+  <header class="titlebar">
+    <svg class="logo" viewBox="0 0 40 40"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b34bff"/><stop offset="1" stop-color="#3d6bff"/></linearGradient></defs>
+      <path d="M3 4h12l-2 9h13l2-9h9L33 36h-9l2-10H13l-2 10H2z" fill="url(#lg)"/></svg>
+    <div class="vr"></div>
+    <div class="brand">WALLPAPER ENGINE</div>
+    <div class="spacer"></div>
+    <div class="theme-box no-drag" title="Dark / Light">
+      <span>🌙</span><span data-toggle="theme-toggle"></span><span>☀️</span>
+    </div>
+    <button class="win-btn no-drag" onclick="HAKAI.minimize()" title="Minimize"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+    <button class="win-btn no-drag" onclick="HAKAI.maximize()" title="Maximize"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2.5"/></svg></button>
+    <button class="win-btn close no-drag" onclick="HAKAI.close()" title="Close to tray"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </header>
+
+  <div class="body">
+
+    <!-- ═════ Sidebar ═════ -->
+    <nav class="side clay">
+      <button class="nav-btn active" data-filter="all"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg>All Wallpapers</button>
+      <button class="nav-btn" data-filter="video"><svg viewBox="0 0 24 24"><path d="M7 4.8v14.4L19 12z"/></svg>Videos</button>
+      <button class="nav-btn" data-filter="gif"><svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2"/><path d="M12 9v11M4 13h16M12 9c-1-4-5-4-5-1.5S10 9 12 9zm0 0c1-4 5-4 5-1.5S14 9 12 9z"/></svg>GIFs</button>
+      <button class="nav-btn" data-filter="image"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9.5" r="1.6"/><path d="M5 17l5-5 4 4 2-2 3 3"/></svg>Images</button>
+      <button class="import-btn" onclick="importWallpapers()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Import Wallpapers</button>
+    </nav>
+
+    <!-- ═════ Library ═════ -->
+    <main class="center">
+      <div class="toprow">
+        <div class="search inset">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+          <input id="lib-search" placeholder="Search wallpapers..." oninput="renderGrid()"/>
+        </div>
+        <div class="count"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg><span id="count-badge">0 wallpapers</span></div>
+      </div>
+      <div class="grid" id="lib-grid"></div>
+    </main>
+
+    <!-- ═════ Right panel ═════ -->
+    <aside class="panel clay">
+      <div class="panel-scroll">
+
+        <div class="preview" id="active-preview">No wallpaper active</div>
+        <div class="eyebrow">NOW PLAYING</div>
+        <div class="now inset" id="active-info"></div>
+        <button class="power" id="power-btn" onclick="onPowerToggle()"><span class="sq"></span><span id="power-text">Stop Wallpaper</span></button>
+
+        <div class="sec">
+          <div class="eyebrow">DISPLAY</div>
+          <div>
+            <div class="row"><span class="lbl">Volume</span><span class="val" id="vol-val">50%</span></div>
+            <input type="range" id="vol-slider" min="0" max="100" value="50" style="margin-top:9px"/>
+          </div>
+          <div class="row"><span class="lbl">Muted</span><span data-toggle="mute-toggle"></span></div>
+          <div>
+            <div class="row"><span class="lbl">Dim</span><span class="val" id="dim-val">20%</span></div>
+            <input type="range" id="dim-slider" min="0" max="90" value="20" style="margin-top:9px"/>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="eyebrow">CLOCK OVERLAY</div>
+          <div class="ck-prev">
+            <div class="d neo"><span id="prev-day">SATURDAY</span></div>
+            <div class="t neo"><span id="prev-time">09:59</span><small id="prev-ap">AM</small></div>
+            <div class="dt neo" id="prev-date">OCTOBER 31, 2026</div>
+          </div>
+          <div class="row"><div><div class="lbl">Show on desktop</div><div class="sub">Time, day &amp; date over your wallpaper</div></div><span data-toggle="clock-toggle"></span></div>
+          <div class="opts" id="clock-opts">
+            <div class="eyebrow">POSITION</div>
+            <div class="chips" data-key="clockPosition">
+              <button class="chip" data-val="center">Center</button>
+              <button class="chip" data-val="top-left">Top Left</button>
+              <button class="chip" data-val="top-right">Top Right</button>
+              <button class="chip" data-val="bottom-left">Bottom Left</button>
+              <button class="chip" data-val="bottom-right">Bottom Right</button>
+            </div>
+            <div class="eyebrow">SIZE</div>
+            <div class="chips" data-key="clockSize">
+              <button class="chip" data-val="small">Small</button>
+              <button class="chip" data-val="medium">Medium</button>
+              <button class="chip" data-val="large">Large</button>
+              <button class="chip" data-val="xlarge">XL</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="eyebrow">NAME BANNER</div>
+          <div class="row"><div><div class="lbl">Show my name</div><div class="sub">Same font as the clock, top of screen</div></div><span data-toggle="banner-toggle"></span></div>
+          <div class="opts" id="banner-opts">
+            <input class="field" id="banner-name" maxlength="24" placeholder="Your name" spellcheck="false"/>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="eyebrow">MUSIC WIDGET</div>
+          <div class="row"><div><div class="lbl">Show song on wallpaper</div><div class="sub">Works with YouTube Music, Spotify, any player</div></div><span data-toggle="media-toggle"></span></div>
+          <div class="opts" id="media-opts">
+            <div class="chips" data-key="mediaPosition">
+              <button class="chip" data-val="bottom-left">Left</button>
+              <button class="chip" data-val="bottom-center">Center</button>
+              <button class="chip" data-val="bottom-right">Right</button>
+            </div>
+            <div class="mctl">
+              <button class="mc" data-cmd="prev" title="Previous"><svg viewBox="0 0 24 24"><path d="M6 5v14"/><path d="M19 5L9 12l10 7z"/></svg></button>
+              <button class="mc big" data-cmd="toggle" title="Play / Pause"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="5" width="4.2" height="14" rx="1.4"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4"/></svg></button>
+              <button class="mc" data-cmd="next" title="Next"><svg viewBox="0 0 24 24"><path d="M18 5v14"/><path d="M5 5l10 7-10 7z"/></svg></button>
+            </div>
+            <div class="status inset" id="media-status">Play a song — you can keep that browser tab in the background.</div>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="eyebrow">SYSTEM</div>
+          <div class="row"><div><div class="lbl">Start with Windows</div><div class="sub">Launch silently at login</div></div><span data-toggle="startup-toggle"></span></div>
+        </div>
+
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- Context menu -->
+<div id="ctx-menu">
+  <button id="ctx-apply">▶  Apply</button>
+  <button id="ctx-rename">✎  Rename</button>
+  <button id="ctx-reveal">📂  Show in folder</button>
+  <button id="ctx-delete" class="danger">🗑  Delete</button>
+</div>
+
+<!-- Rename modal -->
+<div id="rename-overlay">
+  <div class="modal">
+    <h3>Rename wallpaper</h3>
+    <input class="field" id="rename-input" maxlength="60" spellcheck="false"/>
+    <div class="btns"><button class="btn" onclick="closeRename()">Cancel</button><button class="btn primary" onclick="confirmRename()">Save</button></div>
+  </div>
+</div>
+
+<script>
+let library = [], settings = {}, activeId = null, currentFilter = 'all';
+let ctxTargetId = null, renameTargetId = null;
+const urlCache = new Map();
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ── Build the LED toggles from the placeholders ───────────────────────
+function buildToggles() {
+  document.querySelectorAll('[data-toggle]').forEach(ph => {
+    const id = ph.dataset.toggle;
+    ph.className = 'sw-scale';
+    ph.innerHTML = `
+      <div class="switch-container">
+        <input class="toggle-checkbox" id="${id}" type="checkbox" />
+        <label class="switch" for="${id}"><div class="toggle"><div class="led"></div></div></label>
+      </div>`;
+  });
+}
+
+async function fileUrl(p) {
+  if (!urlCache.has(p)) urlCache.set(p, await HAKAI.fileUrl(p));
+  return urlCache.get(p);
+}
+
+function setFill(el) {
+  const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
+  el.style.setProperty('--p', pct + '%');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+async function init() {
+  buildToggles();
+  [library, settings] = await Promise.all([HAKAI.libraryLoad(), HAKAI.settingsGet()]);
+  activeId = settings.activeId;
+  bindControls();
+  syncUI(settings);
+  renderGrid();
+  renderActiveInfo();
+
+  HAKAI.on('settings-changed', s => { settings = s; syncUI(s); });
+  HAKAI.on('active-changed', id => { activeId = id; renderGrid(); renderActiveInfo(); });
+  HAKAI.on('media-update', onMediaStatus);
+  HAKAI.mediaGet().then(onMediaStatus);
+}
+
+function syncUI(s) {
+  document.body.dataset.theme = s.theme === 'light' ? 'light' : 'dark';
+  $('theme-toggle').checked = s.theme === 'light';
+
+  for (const [id, key, def, vid] of [['vol-slider','volume',50,'vol-val'], ['dim-slider','dim',20,'dim-val']]) {
+    if (document.activeElement !== $(id)) { $(id).value = s[key] ?? def; setFill($(id)); $(vid).textContent = `${s[key] ?? def}%`; }
+  }
+
+  $('mute-toggle').checked    = s.muted !== false;
+  $('startup-toggle').checked = s.startWithWindows === true;
+  $('clock-toggle').checked   = s.showClock !== false;
+  $('banner-toggle').checked  = s.showBanner !== false;
+  $('media-toggle').checked   = s.showMedia !== false;
+
+  $('clock-opts').classList.toggle('visible', s.showClock !== false);
+  $('banner-opts').classList.toggle('visible', s.showBanner !== false);
+  $('media-opts').classList.toggle('visible', s.showMedia !== false);
+
+  if (document.activeElement !== $('banner-name')) $('banner-name').value = s.bannerName ?? 'HAKAI';
+
+  document.querySelectorAll('.chips').forEach(g => {
+    const cur = s[g.dataset.key];
+    g.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.val === cur));
+  });
+  updatePowerUI(s.wallpaperOn !== false);
+}
+
+async function update(patch) {
+  settings = await HAKAI.settingsUpdate(patch);
+  syncUI(settings);
+}
+
+function bindControls() {
+  // sidebar filters
+  document.querySelectorAll('.nav-btn').forEach(b => b.onclick = () => {
+    currentFilter = b.dataset.filter;
+    document.querySelectorAll('.nav-btn').forEach(x => x.classList.toggle('active', x === b));
+    renderGrid();
+  });
+  // toggles → settings keys
+  const map = { 'mute-toggle':'muted', 'startup-toggle':'startWithWindows', 'clock-toggle':'showClock',
+                'banner-toggle':'showBanner', 'media-toggle':'showMedia' };
+  Object.entries(map).forEach(([id, key]) => $(id).addEventListener('change', e => update({ [key]: e.target.checked })));
+  $('theme-toggle').addEventListener('change', e => update({ theme: e.target.checked ? 'light' : 'dark' }));
+  // music controls
+  document.querySelectorAll('.mc').forEach(b => b.onclick = async () => {
+    const ok = await HAKAI.mediaControl(b.dataset.cmd);
+    if (!ok) $('media-status').textContent = 'Nothing to control — start a song first.';
+  });
+  // chips
+  document.querySelectorAll('.chips').forEach(g => g.querySelectorAll('.chip').forEach(c =>
+    c.onclick = () => update({ [g.dataset.key]: c.dataset.val })));
+  // sliders
+  const slide = (id, valId, key) => {
+    let timer;
+    $(id).addEventListener('input', e => {
+      setFill(e.target); $(valId).textContent = e.target.value + '%';
+      clearTimeout(timer);
+      timer = setTimeout(() => HAKAI.settingsUpdate({ [key]: Number(e.target.value) }).then(r => { settings = r; }), 90);
+    });
+  };
+  slide('vol-slider', 'vol-val', 'volume');
+  slide('dim-slider', 'dim-val', 'dim');
+  // banner name (debounced)
+  let t; $('banner-name').addEventListener('input', e => { clearTimeout(t); t = setTimeout(() => update({ bannerName: e.target.value }), 250); });
+}
+
+// ── Library grid ──────────────────────────────────────────────────────
+function typeIcon(t) { return t === 'video' ? '🎬' : t === 'gif' ? '✨' : '🖼️'; }
+
+async function renderGrid() {
+  const q = ($('lib-search').value || '').toLowerCase();
+  const grid = $('lib-grid');
+  const list = library.filter(w => (currentFilter === 'all' || w.type === currentFilter) && (!q || w.name.toLowerCase().includes(q)));
+  $('count-badge').textContent = `${list.length} wallpaper${list.length !== 1 ? 's' : ''}`;
+
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty"><div class="big">${library.length ? '🔍' : '🎨'}</div>
+      <h3>${library.length ? 'No matches' : 'Your library is empty'}</h3>
+      <p>${library.length ? 'Try a different search or filter.' : 'Click “Import Wallpapers” to add videos, GIFs or images.'}</p></div>`;
+    return;
+  }
+  const urls = await Promise.all(list.map(w => fileUrl(w.file)));
+  grid.innerHTML = '';
+  list.forEach((w, i) => {
+    const url = urls[i], isActive = w.id === activeId;
+    const card = document.createElement('div');
+    card.className = 'card' + (isActive ? ' active-card' : '');
+    let media = `<div class="ph">${typeIcon(w.type)}</div>`;
+    if (url && w.type !== 'video') media = `<img class="thumb" src="${url}" alt="" loading="lazy" decoding="async"/>`;
+    card.innerHTML = `${media}
+      <div class="badge">${w.type.toUpperCase()}</div>
+      ${isActive ? '<div class="badge act">ACTIVE</div>' : ''}
+      <div class="acts"><button class="mini go">▶ Apply</button><button class="mini more">⋮</button></div>
+      <div class="cap">${esc(w.name)}</div>`;
+    card.querySelector('.go').onclick   = e => { e.stopPropagation(); applyWallpaper(w.id); };
+    card.querySelector('.more').onclick = e => { e.stopPropagation(); showCtxFor(e, w.id); };
+    card.ondblclick = () => applyWallpaper(w.id);
+    card.oncontextmenu = e => { e.preventDefault(); showCtxFor(e, w.id); };
+    grid.appendChild(card);
+  });
+}
+
+// ── Active wallpaper panel ────────────────────────────────────────────
+async function renderActiveInfo() {
+  const entry = library.find(w => w.id === activeId);
+  const pv = $('active-preview'), info = $('active-info');
+  if (!entry) {
+    pv.innerHTML = 'No wallpaper active';
+    info.innerHTML = '<div class="nm" style="padding:6px 4px;color:var(--txt2)">Nothing playing</div>';
+    return;
+  }
+  const url = await fileUrl(entry.file);
+  pv.innerHTML = entry.type === 'video' ? '<span style="font-size:42px">🎬</span>' : `<img src="${url}" alt=""/>`;
+  info.innerHTML = `<div class="ico">${typeIcon(entry.type)}</div>
+    <div><div class="nm">${esc(entry.name)}</div><div class="tp">${entry.type} · ${esc(entry.ext)}</div></div>`;
+}
+
+// ── Actions ───────────────────────────────────────────────────────────
+async function applyWallpaper(id) { await HAKAI.activate(id); activeId = id; renderGrid(); renderActiveInfo(); }
+async function importWallpapers() {
+  const added = await HAKAI.libraryImport();
+  if (!added || !added.length) return;
+  library = [...library, ...added];
+  renderGrid();
+}
+async function onPowerToggle() {
+  const on = settings.wallpaperOn !== false;
+  settings = await HAKAI.toggleWallpaper(!on);
+  syncUI(settings);
+}
+function updatePowerUI(on) {
+  $('power-btn').classList.toggle('off', !on);
+  $('power-text').textContent = on ? 'Stop Wallpaper' : 'Start Wallpaper';
+}
+
+// ── Live preview clock (same font as the desktop) ─────────────────────
+const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+function tickPreview() {
+  const n = new Date(), h = n.getHours();
+  $('prev-time').textContent = `${String(h % 12 || 12).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+  $('prev-ap').textContent = h >= 12 ? 'PM' : 'AM';
+  $('prev-day').textContent = DAYS[n.getDay()];
+  $('prev-date').textContent = `${MONTHS[n.getMonth()]} ${n.getDate()}, ${n.getFullYear()}`;
+}
+setInterval(tickPreview, 1000); tickPreview();
+
+// ── Music status line ─────────────────────────────────────────────────
+function onMediaStatus(m) {
+  const el = $('media-status');
+  if (!/Windows/i.test(navigator.userAgent)) { el.textContent = 'Music detection works on Windows 10/11.'; return; }
+  if (!m || !m.title) { el.textContent = 'Waiting for music… play a song (browser tab can stay in the background).'; return; }
+  el.innerHTML = `${m.status === 'playing' ? '♪ Playing' : '⏸ Paused'}: <b>${esc(m.title)}</b>${m.artist ? ' — ' + esc(m.artist) : ''}`;
+}
+
+// ── Context menu ──────────────────────────────────────────────────────
+function showCtxFor(e, id) {
+  ctxTargetId = id;
+  const m = $('ctx-menu');
+  m.style.left = `${Math.min(e.clientX, window.innerWidth - 190)}px`;
+  m.style.top  = `${Math.min(e.clientY, window.innerHeight - 200)}px`;
+  m.classList.add('show');
+  e.stopPropagation();
+}
+function hideCtx() { $('ctx-menu').classList.remove('show'); }
+$('ctx-apply').onclick  = () => { if (ctxTargetId) applyWallpaper(ctxTargetId); hideCtx(); };
+$('ctx-rename').onclick = () => { if (ctxTargetId) openRename(ctxTargetId); hideCtx(); };
+$('ctx-reveal').onclick = () => { const e = library.find(w => w.id === ctxTargetId); if (e) HAKAI.revealFile(e.file); hideCtx(); };
+$('ctx-delete').onclick = async () => {
+  const entry = library.find(w => w.id === ctxTargetId);
+  hideCtx();
+  if (!entry || !confirm(`Remove "${entry.name}" from your library?\nThe file will be deleted.`)) return;
+  await HAKAI.libraryDelete(entry.id);
+  library = library.filter(w => w.id !== entry.id);
+  if (activeId === entry.id) { activeId = null; renderActiveInfo(); }
+  renderGrid();
+};
+document.addEventListener('click', hideCtx);
+
+// ── Rename ────────────────────────────────────────────────────────────
+function openRename(id) {
+  renameTargetId = id;
+  $('rename-input').value = library.find(w => w.id === id)?.name || '';
+  $('rename-overlay').classList.add('show');
+  setTimeout(() => $('rename-input').focus(), 50);
+}
+function closeRename() { renameTargetId = null; $('rename-overlay').classList.remove('show'); }
+async function confirmRename() {
+  const name = $('rename-input').value.trim();
+  if (!name || !renameTargetId) return closeRename();
+  await HAKAI.libraryRename(renameTargetId, name);
+  const e = library.find(w => w.id === renameTargetId);
+  if (e) e.name = name;
+  closeRename(); renderGrid(); renderActiveInfo();
+}
+$('rename-input').addEventListener('keydown', e => { if (e.key === 'Enter') confirmRename(); if (e.key === 'Escape') closeRename(); });
+
+init();
+</script>
+</body>
+</html>
