@@ -1,196 +1,68 @@
-# HAKAI Wallpaper Engine
+# HAKAI Wallpaper Engine - Setup commands (Windows)
 
-Live desktop wallpapers for Windows 10/11 — video, GIF and image — with a neon clock, a name banner and a now-playing music widget. Built with Electron.
+Run every command in PowerShell, inside the project folder (the one with package.json).
+Run them one at a time.
 
----
-
-## Features
-
-| Feature | What it does |
-|---|---|
-| Video / GIF / Image wallpapers | MP4, WebM, MOV, AVI, MKV, GIF, PNG, JPG, WebP |
-| Clay (neumorphic) UI | Purple-blue gradient, with a **Dark / Light** switch |
-| LED toggle switches | Every on/off option uses the same LED toggle |
-| Clock overlay | Centered by default; also 4 corners; Small / Medium / Large / XL |
-| Hakai Neo font | Custom font used for the weekday, clock time, date and name banner |
-| Name banner | Your name at the top of the wallpaper, on/off toggle |
-| Music widget | Song, artist, cover art and progress bar, on/off toggle |
-| Volume / Mute / Dim | Control audio and darken the wallpaper |
-| Tray icon | Runs in the background |
-| Start with Windows | Launch silently at login |
-
-### Music widget
-
-Reads what Windows is currently playing, so it works with YouTube Music (even in a background browser tab), Spotify and most players. Windows 10/11 only. Turn it off in the app under **Music Widget**.
-
-### Clean look
-
-For wallpapers with detailed art, turn **Name Banner** off, **Music Widget** off, and set the clock to **Bottom Left**.
-
----
-
-## 1. Requirements
-
-- Windows 10 or 11
-- **Node.js 22 (LTS)** — **do not use Node 26**, it breaks Electron's installer.
-
-Install Node 22 from PowerShell:
-
-```powershell
-winget uninstall OpenJS.NodeJS.LTS
+## 1. Install Node 22 (once)
+```
 winget install OpenJS.NodeJS.LTS --version 22.12.0
 ```
-
-Close PowerShell and open a new one, then check:
-
-```powershell
+Close PowerShell, open a new one, then check:
+```
 node -v
 ```
+It must say v22.x. Do NOT use Node 26 (it breaks Electron).
 
-It must show `v22.x.x`. (Manual installer: https://nodejs.org/dist/v22.12.0/node-v22.12.0-x64.msi)
-
----
-
-## 2. Install and run (test mode)
-
-Open PowerShell in this folder (click the File Explorer address bar, type `powershell`, press Enter).
-
-```powershell
+## 2. Install the project
+```
 npm install
-npm start
 ```
 
-Do **not** run `npm audit fix --force`.
-
----
-
-## 3. If Electron fails to install (manual install)
-
-Symptom: `npm start` says **"Electron failed to install correctly"**, or `node_modules\electron\dist` only contains a `locales` folder.
-
-Install Electron by hand. Run these one at a time in this folder.
-
-**3.1 Download Electron 31.7.7**
-
-```powershell
+## 3. If Electron did not install (npm start says "Electron failed to install correctly")
+```
 Invoke-WebRequest -Uri "https://github.com/electron/electron/releases/download/v31.7.7/electron-v31.7.7-win32-x64.zip" -OutFile "$env:TEMP\electron.zip"
-```
-
-**3.2 Remove the broken folder and unpack the zip**
-
-```powershell
 Remove-Item -Recurse -Force node_modules\electron\dist -ErrorAction SilentlyContinue
 Expand-Archive -Path "$env:TEMP\electron.zip" -DestinationPath node_modules\electron\dist
-```
-
-**3.3 Tell Electron where its program is**
-
-```powershell
 Set-Content -Path node_modules\electron\path.txt -Value "electron.exe" -NoNewline
-```
-
-**3.4 Check it**
-
-```powershell
 dir node_modules\electron\dist\electron.exe
 ```
+The last command must list electron.exe. If antivirus deletes it, add the project folder
+to the Windows Security exclusions and repeat.
 
-**3.5 Start**
-
-```powershell
+## 4. Test it
+```
 npm start
 ```
 
-If Windows Security deletes `electron.exe`, add this project folder as an exclusion (Windows Security → Virus & threat protection → Manage settings → Exclusions) and repeat 3.2.
-
----
-
-## 4. Make it a real app (.exe) inside this folder
-
-`npm run pack` can fail silently, so build the app folder by hand. Run these one at a time in this folder.
-
-**4.1 Copy Electron into a new folder called `HAKAI`**
-
-```powershell
-Copy-Item -Recurse node_modules\electron\dist .\HAKAI
+## 5. Build the standalone app
 ```
-
-**4.2 Put the app inside it**
-
-```powershell
-New-Item -ItemType Directory .\HAKAI\resources\app
-Copy-Item -Recurse src,assets,index.html,wallpaper.html,package.json .\HAKAI\resources\app
+node build-app.js
 ```
+Result:
+- `release\HAKAI Wallpaper Engine\HAKAI Wallpaper Engine.exe`  (the app)
+- `release\HAKAI-Wallpaper-Engine.zip`  (send this to friends; they unzip and double-click, nothing to install)
 
-**4.3 Rename the exe**
+## 6. Use the app
+1. Quit the running copy from the tray icon.
+2. Copy the whole `HAKAI Wallpaper Engine` folder somewhere permanent, e.g. `D:\Apps\`.
+   Keep all files together; the exe needs the files next to it.
+3. Double-click `HAKAI Wallpaper Engine.exe`.
+4. Optional: right-click the exe > Send to > Desktop (shortcut), or put a shortcut in
+   `C:\ProgramData\Microsoft\Windows\Start Menu\Programs` so Windows search finds it.
 
-```powershell
-Rename-Item .\HAKAI\electron.exe "HAKAI Wallpaper Engine.exe"
+## 7. Delete node_modules and Electron (only after step 6 works)
 ```
-
-**4.4 Run it**
-
-```powershell
-explorer .\HAKAI
+Remove-Item -Recurse -Force node_modules
 ```
+Keep the project folder and source files. To change the app later:
+`npm install`, edit, `node build-app.js`.
 
-Double-click **HAKAI Wallpaper Engine.exe**.
-
-> Keep the `HAKAI` folder where it is. Do not move or delete it, or the shortcut will break.
-
----
-
-## 5. Show it in Windows search / Start menu
-
-Change the paths below if your project is not in `D:\Hakai-LivelyDesktopWalls`.
-
-```powershell
-$s = (New-Object -ComObject WScript.Shell).CreateShortcut("$env:APPDATA\Microsoft\Windows\Start Menu\Programs\HAKAI Wallpaper Engine.lnk")
-$s.TargetPath = "D:\Hakai-LivelyDesktopWalls\HAKAI\HAKAI Wallpaper Engine.exe"
-$s.WorkingDirectory = "D:\Hakai-LivelyDesktopWalls\HAKAI"
-$s.IconLocation = "D:\Hakai-LivelyDesktopWalls\HAKAI\resources\app\assets\icon.ico"
-$s.Save()
-```
-
-Wait about 10 seconds, then search **HAKAI Wallpaper** in the Start menu. Right-click it to **Pin to Start** or **Pin to taskbar**.
-
-To launch at login, turn on **Start with Windows** in the app.
-
----
-
-## 6. Updating the app later
-
-After changing any file (`index.html`, `wallpaper.html`, `src\...`), copy it into the built app:
-
-```powershell
-Copy-Item -Recurse -Force src,assets,index.html,wallpaper.html,package.json .\HAKAI\resources\app
-```
-
-Quit the app from the tray menu first, then start it again.
-
----
+## Where your data lives
+`%APPDATA%\HAKAI Wallpaper Engine` (library, settings, hakai.log). Deleting node_modules does not touch it.
 
 ## Troubleshooting
-
 | Problem | Fix |
 |---|---|
-| `Electron failed to install correctly` | Use Node 22, then follow **section 3** |
-| `dist` only has `locales` | Follow **section 3** |
-| App not in Windows search | Run the **section 5** command and wait ~10 seconds |
-| Music widget shows nothing | Make sure a song is actually playing; check the status line in the app under **Music Widget** |
-| High RAM | Use images or short 1080p videos; turn the music widget off; click **Stop Wallpaper** while gaming |
-
----
-
-## Project layout
-
-```
-src/main.js        Electron main process (windows, tray, settings, music reader)
-src/preload.js     Bridge between main process and pages
-src/media.ps1      Reads the Windows now-playing session
-index.html         The app window
-wallpaper.html     The wallpaper layer (clock, banner, music widget)
-assets/fonts/      Hakai Neo font
-```
-
-MIT License
+| Electron failed to install correctly | Use Node 22, then section 3 |
+| Wallpaper not playing | Open `%APPDATA%\HAKAI Wallpaper Engine\hakai.log` and send it |
+| Build fails | Run `npm install` first, then `node build-app.js` again |
